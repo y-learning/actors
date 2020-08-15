@@ -1,4 +1,4 @@
-import result.Result
+import fn.result.Result
 
 interface Actor<T> {
     val context: ActorContext<T>

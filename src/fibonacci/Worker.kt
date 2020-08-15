@@ -2,7 +2,7 @@ package fibonacci
 
 import AbstractActor
 import Actor
-import result.Result
+import fn.result.Result
 
 
 class Worker(id: String) : AbstractActor<Int>(id) {

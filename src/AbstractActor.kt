@@ -1,4 +1,4 @@
-import result.Result
+import fn.result.Result
 import java.lang.Exception
 import java.lang.RuntimeException
 import java.util.concurrent.ExecutorService
