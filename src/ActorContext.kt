@@ -1,3 +1,5 @@
+import result.Result
+
 interface MessageProcessor<T> {
 
     fun process(message: T, sender: Result<Actor<T>>)
