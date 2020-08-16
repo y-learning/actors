@@ -1,8 +1,8 @@
 package fn.collections
 
-import fn.result.option.Option
 import fn.result.Result
-import fn.result.option.map2
+import fn.result.map2
+import fn.result.option.Option
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.ExecutorService
 
@@ -100,9 +100,9 @@ fun <T, S> unfoldCoRec(
     return unfoldCoRecIter(List(), s).map(List<T>::reverse)
 }
 
-fun range(start: Int, end: Int): Result<List<Int>> = unfoldCoRec(start) {
-    if (it < end) Result(Pair(it, it + 1))
-    else Result()
+fun range(start: Int, end: Int): List<Int> = unfold(start) {
+    if (it < end) Option(Pair(it, it + 1))
+    else Option()
 }
 
 sealed class List<out E> {
