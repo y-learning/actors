@@ -8,30 +8,32 @@ import fn.collections.range
 import fn.collections.sequence
 import fn.collections.zipWith
 import fn.result.Result
+import fn.trees.Heap
 
 class WorkersManager(
     id: String,
     toDoList: List<Int>,
     private val client: Actor<Result<List<Int>>>,
     private val workersCount: Int) :
-    AbstractActor<Int>(id) {
+    AbstractActor<Task>(id) {
 
-    private val initial: List<Pair<Int, Int>>
-    private val remainingWork: List<Int>
-    private val resultList: List<Int>
-    internal val execute: (WorkersManager) -> (Behavior) -> (Int) -> Unit
+    private val initial: List<Task>
+    private val remainingWork: List<Task>
+    private val resultHeap: Heap<Task>
+    internal val execute: (WorkersManager) -> (Behavior) -> (Task) -> Unit
 
     init {
-        val splits = toDoList.splitAt(this.workersCount)
-        this.initial = zipWithPosition(splits.first)
+        val splits = zipWithPosition(toDoList).splitAt(this.workersCount)
+        this.initial = splits.first
         this.remainingWork = splits.second
-        this.resultList = List()
+        this.resultHeap = Heap()
+
         this.execute = { workersManager ->
             { behavior ->
-                { resultNum: Int ->
-                    val result = behavior.resultList.cons(resultNum)
-                    if (result.length == toDoList.length)
-                        client.tell(Result(result))
+                { task: Task ->
+                    val result = behavior.resultHeap + task
+                    if (result.size == toDoList.length)
+                        client.tell(Result(result.toList().map { it.number }))
                     else workersManager.context
                         .become(Behavior(behavior.workList.rest(), result))
                 }
@@ -39,11 +41,15 @@ class WorkersManager(
         }
     }
 
-    override fun onReceive(message: Int, sender: Result<Actor<Int>>) =
-        context.become(Behavior(remainingWork, resultList))
+    override fun onReceive(message: Task, sender: Result<Actor<Task>>) =
+        context.become(Behavior(remainingWork, resultHeap))
 
-    private fun initWorkerCreator(pair: Pair<Int, Int>): Result<() -> Unit> =
-        Result({ Worker("Worker ${pair.second}").tell(pair.first, self()) })
+
+    private fun initWorkerCreator(task: Task): Result<() -> Unit> =
+        Result({
+            Worker("Worker ${task.id}")
+                .tell(Task(task.id, task.number), self())
+        })
 
     private
     fun tellWorkersToWork(workers: List<() -> Unit>) = workers.forEach { it() }
@@ -52,7 +58,7 @@ class WorkersManager(
         client.tell(Result.failure("$string caused by empty input list."))
 
     fun start() {
-        onReceive(0, self())
+        onReceive(Task(0, 0), self())
 
         sequence(initial.map { this.initWorkerCreator(it) })
             .forEach(onSuccess = { tellWorkersToWork(it) }, onFailure = {
@@ -61,12 +67,12 @@ class WorkersManager(
     }
 
     internal inner class Behavior(
-        internal val workList: List<Int>,
-        internal val resultList: List<Int>) : MessageProcessor<Int> {
+        internal val workList: List<Task>,
+        internal val resultHeap: Heap<Task>) : MessageProcessor<Task> {
 
-        override fun process(message: Int, sender: Result<Actor<Int>>) {
+        override fun process(message: Task, sender: Result<Actor<Task>>) {
             execute(this@WorkersManager)(this@Behavior)(message)
-            sender.forEach(onSuccess = { _sender: Actor<Int> ->
+            sender.forEach(onSuccess = { _sender: Actor<Task> ->
                 workList.firstSafe()
                     .forEach({ _sender.tell(it, self()) }) {
                         _sender.shutdown()
@@ -76,10 +82,7 @@ class WorkersManager(
     }
 }
 
-fun zipWithPosition(numbers: List<Int>): List<Pair<Int, Int>> {
-    return zipWith(numbers, range(0, numbers.length)) { n: Int ->
-        { pos: Int ->
-            Pair(n, pos)
-        }
+fun zipWithPosition(numbers: List<Int>): List<Task> =
+    zipWith(numbers, range(0, numbers.length)) { n: Int ->
+        { pos: Int -> Task(pos, n) }
     }
-}

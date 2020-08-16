@@ -5,16 +5,26 @@ import Actor
 import fn.result.Result
 
 
-class Worker(id: String) : AbstractActor<Int>(id) {
-    private fun slowFibonacci(n: Int): Int = when (n) {
-        0 -> 1
-        1 -> 1
-        else -> slowFibonacci(n - 1) + slowFibonacci(n - 2)
-    }
+fun slowFibonacci(n: Int): Int = when (n) {
+    0 -> 1
+    1 -> 1
+    else -> slowFibonacci(n - 1) + slowFibonacci(n - 2)
+}
 
-    override fun onReceive(message: Int, sender: Result<Actor<Int>>) {
-        sender.forEach(onSuccess = { _sender: Actor<Int> ->
-            _sender.tell(slowFibonacci(message), self())
+data class Task(val id: Int, val number: Int) : Comparable<Task> {
+    override fun compareTo(other: Task): Int = when {
+        this.id > other.id -> 1
+        this.id < other.id -> -1
+        else -> 0
+    }
+}
+
+class Worker(id: String) : AbstractActor<Task>(id) {
+    override fun onReceive(message: Task, sender: Result<Actor<Task>>) {
+        sender.forEach(onSuccess = { _sender: Actor<Task> ->
+            _sender.tell(
+                Task(message.id, slowFibonacci(message.number)),
+                self())
         })
     }
 }
