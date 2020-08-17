@@ -21,17 +21,13 @@ private fun processSuccess(list: List<Int>) {
 
 private fun processFailure(message: String) = println(message)
 
-private fun makeClient(tPrint: () -> Unit): AbstractActor<Result<List<Int>>> {
-    return object : AbstractActor<Result<List<Int>>>("Client") {
-
-        override fun onReceive(
-            message: Result<List<Int>>,
-            sender: Result<Actor<Result<List<Int>>>>) {
-
-            message.forEach(
-                { processSuccess(it) },
-                { processFailure(it.message ?: "Unknown Error") })
+private fun makeClient(tPrint: () -> Unit): AbstractActor<List<Int>> {
+    return object : AbstractActor<List<Int>>("Client") {
+        override
+        fun onReceive(message: List<Int>, sender: Result<Actor<List<Int>>>) {
             tPrint()
+            println("Input: ${testSubject.splitAt(40).first}")
+            println("Result: ${message.splitAt(40).first}")
             semaphore.release()
         }
     }
@@ -45,7 +41,9 @@ fun main() {
         println("Total time: $delta sec")
     }
 
-    WorkersManager("Manager", testSubject, client, workersNum).start()
+    val receiver = Receiver("Receiver", client)
+
+    WorkersManager("Manager", testSubject, receiver, workersNum).start()
 
     semaphore.acquire()
 }
