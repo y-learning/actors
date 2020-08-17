@@ -1,4 +1,4 @@
-import result.Result
+import fn.result.Result
 
 interface MessageProcessor<T> {
 

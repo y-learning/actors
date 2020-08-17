@@ -1,6 +1,6 @@
-package result
+package fn.result
 
-import result.Result.Empty
+import fn.result.Result.Empty
 import java.io.Serializable
 
 sealed class Result<out A> : Serializable {

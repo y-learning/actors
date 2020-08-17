@@ -2,7 +2,7 @@ package pingpong
 
 import AbstractActor
 import Actor
-import result.Result
+import fn.result.Result
 
 import java.util.concurrent.Semaphore
 
